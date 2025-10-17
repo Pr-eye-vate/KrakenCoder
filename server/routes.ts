@@ -88,8 +88,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Chat streaming with Gemini
   app.post("/api/chat/stream", async (req, res) => {
+    // Set up SSE headers first
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
     try {
       const { message, sessionId = "default" } = req.body;
+
+      if (!process.env.GEMINI_API_KEY) {
+        res.write(`data: ${JSON.stringify({ error: "Gemini API key not configured" })}\n\n`);
+        res.write('data: [DONE]\n\n');
+        res.end();
+        return;
+      }
 
       // Save user message
       await storage.createChatMessage({
@@ -98,26 +110,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sessionId,
       });
 
-      // Set up SSE headers
-      res.setHeader('Content-Type', 'text/event-stream');
-      res.setHeader('Cache-Control', 'no-cache');
-      res.setHeader('Connection', 'keep-alive');
-
       // Get chat history for context
       const chatHistory = await storage.getChatMessages(sessionId);
       
-      // Build conversation context (last 10 messages)
+      // Build conversation history (last 10 messages)
       const recentMessages = chatHistory.slice(-10);
-      const conversationContext = recentMessages
-        .map(msg => `${msg.role}: ${msg.content}`)
-        .join('\n\n');
+      
+      // Build Gemini-compatible contents array
+      const contents = [
+        {
+          role: "user",
+          parts: [{ text: message }],
+        }
+      ];
 
       const systemPrompt = `You are an AI programming assistant integrated into an IDE. 
 You help users write better code, debug issues, explain concepts, and answer programming questions.
-Be concise, technical, and helpful. Format code using markdown code blocks.
-
-Recent conversation:
-${conversationContext}`;
+Be concise, technical, and helpful. Format code using markdown code blocks.`;
 
       // Stream response from Gemini
       const response = await ai.models.generateContentStream({
@@ -125,7 +134,7 @@ ${conversationContext}`;
         config: {
           systemInstruction: systemPrompt,
         },
-        contents: message,
+        contents: contents,
       });
 
       let fullResponse = '';
@@ -151,7 +160,10 @@ ${conversationContext}`;
       res.end();
     } catch (error) {
       console.error('Chat streaming error:', error);
-      res.status(500).json({ error: "Failed to process chat message" });
+      // Send error event in SSE format
+      res.write(`data: ${JSON.stringify({ error: "Failed to process chat message" })}\n\n`);
+      res.write('data: [DONE]\n\n');
+      res.end();
     }
   });
 

@@ -75,7 +75,6 @@ export default function IDE() {
 
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
-      let aiResponse = '';
 
       if (reader) {
         while (true) {
@@ -92,12 +91,6 @@ export default function IDE() {
                 setIsStreaming(false);
                 return;
               }
-              try {
-                const parsed = JSON.parse(data);
-                aiResponse += parsed.content;
-              } catch (e) {
-                console.error('Parse error:', e);
-              }
             }
           }
         }
@@ -105,7 +98,7 @@ export default function IDE() {
       setIsStreaming(false);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/chat'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/chat', 'default'] });
       setChatInput('');
     },
   });
