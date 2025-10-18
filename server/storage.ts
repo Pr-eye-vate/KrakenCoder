@@ -116,7 +116,15 @@ Built with:
 
   async createFile(insertFile: InsertFile): Promise<File> {
     const id = randomUUID();
-    const file: File = { ...insertFile, id };
+    const file: File = { 
+      id,
+      name: insertFile.name,
+      path: insertFile.path,
+      content: insertFile.content ?? '',
+      language: insertFile.language ?? 'plaintext',
+      isDirectory: insertFile.isDirectory ?? 'false',
+      parentPath: insertFile.parentPath ?? null,
+    };
     this.files.set(file.path, file);
     return file;
   }
@@ -173,7 +181,9 @@ Built with:
   async createChatMessage(insertMessage: InsertChatMessage): Promise<ChatMessage> {
     const message: ChatMessage = {
       id: randomUUID(),
-      ...insertMessage,
+      content: insertMessage.content,
+      role: insertMessage.role,
+      sessionId: insertMessage.sessionId ?? 'default',
       timestamp: new Date(),
     };
     this.chatMessages.push(message);
@@ -191,7 +201,11 @@ Built with:
 
   async createTerminalSession(insertSession: InsertTerminalSession): Promise<TerminalSession> {
     const id = randomUUID();
-    const session: TerminalSession = { ...insertSession, id };
+    const session: TerminalSession = { 
+      id,
+      name: insertSession.name,
+      isActive: insertSession.isActive ?? 'true',
+    };
     this.terminalSessions.set(id, session);
     return session;
   }
