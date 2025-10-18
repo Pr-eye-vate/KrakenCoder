@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import Editor from '@monaco-editor/react';
@@ -39,18 +39,26 @@ export default function IDE() {
     enabled: !!selectedFile,
   });
 
+  // Sync editor content when file changes
+  useEffect(() => {
+    if (currentFile?.content !== undefined) {
+      setEditorContent(currentFile.content);
+    }
+  }, [currentFile]);
+
   // Fetch chat messages
   const { data: messages = [] } = useQuery<ChatMessage[]>({
     queryKey: ['/api/chat', 'default'],
   });
 
-  // Update file mutation
+  // Update file mutation with debouncing
   const updateFileMutation = useMutation({
     mutationFn: async ({ path, content }: { path: string; content: string }) => {
       return apiRequest('PATCH', `/api/files/${encodeURIComponent(path)}`, { content });
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['/api/files'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/files', variables.path] });
     },
   });
 
@@ -225,11 +233,12 @@ export default function IDE() {
                   <Editor
                     height="100%"
                     language={currentFile?.language || 'typescript'}
-                    value={currentFile?.content || editorContent}
+                    value={editorContent}
                     onChange={(value) => {
-                      setEditorContent(value || '');
-                      if (selectedFile && value !== undefined) {
-                        updateFileMutation.mutate({ path: selectedFile, content: value });
+                      const newContent = value || '';
+                      setEditorContent(newContent);
+                      if (selectedFile) {
+                        updateFileMutation.mutate({ path: selectedFile, content: newContent });
                       }
                     }}
                     theme="vs-dark"
