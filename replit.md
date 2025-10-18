@@ -8,6 +8,26 @@ CodeForge is an AI-powered Integrated Development Environment (IDE) inspired by 
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes
+
+### October 18, 2025 - IDE Improvements
+- **Resizable Panels**: Implemented react-resizable-panels throughout the IDE for better workspace customization
+  - File explorer, editor, and chat panels are now horizontally resizable
+  - Terminal panel is vertically resizable within the editor area
+  - All panels have appropriate min/max size constraints
+- **Editor State Management Fix**: Fixed critical bug where Monaco editor couldn't persist user edits
+  - Editor now uses local state (editorContent) as the controlled value
+  - Added useEffect to sync content when switching files
+  - Fixed cache invalidation to update both collection and file-specific queries
+- **TypeScript Improvements**: Resolved type safety issues in storage.ts
+  - Properly handle optional fields in createFile, createChatMessage, and createTerminalSession
+  - Fixed apiRequest call signature in IDE component
+- **UI/UX Enhancements**:
+  - Better scrollbar visibility in file explorer and chat
+  - Improved visual feedback for selected files
+  - Fixed layout issues with proper shrink-0 classes on headers/footers
+- **Gemini AI Integration**: Configured GEMINI_API_KEY secret for AI chat functionality
+
 ## System Architecture
 
 ### Frontend Architecture
